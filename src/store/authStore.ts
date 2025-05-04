@@ -53,14 +53,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (data.user) {
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({
+        .insert({
+          id: data.user.id,
           first_name: firstName,
           last_name: lastName,
           updated_at: new Date().toISOString(),
-        })
-        .eq('id', data.user.id);
+        });
 
       if (profileError) throw profileError;
+
+      set({ profile: { first_name: firstName, last_name: lastName } });
     }
   },
   signOut: async () => {

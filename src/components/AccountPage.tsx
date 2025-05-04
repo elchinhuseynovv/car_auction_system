@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { Car, Settings, LogOut, User } from 'lucide-react';
+import { Car, Settings, LogOut, User, Mail } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Bid {
