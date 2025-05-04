@@ -18,7 +18,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
   const [localVehicles, setLocalVehicles] = useState<Vehicle[]>(vehicles);
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  
+
   useEffect(() => {
     setLocalVehicles(vehicles);
   }, [vehicles]);
@@ -105,28 +105,23 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
     setLoading({ ...loading, [vehicleId]: true });
 
     try {
-      const { data: existingBids } = await supabase
-        .from('bids')
-        .select('amount')
-        .eq('vehicle_id', vehicleId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      // Check if someone else has placed a higher bid
-      if (existingBids && existingBids[0] && existingBids[0].amount >= amount) {
-        setError('Someone has already placed a higher bid');
-        return;
-      }
-
-      const { error: bidError } = await supabase
+      const { data: bid, error: bidError } = await supabase
         .from('bids')
         .insert({
           vehicle_id: vehicleId,
           amount: amount,
           user_id: user.id
-        });
+        })
+        .select()
+        .single();
 
       if (bidError) throw bidError;
+
+      // Get updated bid count
+      const { count } = await supabase
+        .from('bids')
+        .select('*', { count: 'exact', head: true })
+        .eq('vehicle_id', vehicleId);
 
       // Update local state
       setBidAmount({ ...bidAmount, [vehicleId]: 0 });
@@ -137,7 +132,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
           return {
             ...v,
             currentBid: amount,
-            bidCount: v.bidCount + 1
+            bidCount: count || 0
           };
         }
         return v;
@@ -146,9 +141,9 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
       setLocalVehicles(updatedVehicles);
       setError('Bid placed successfully!');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error placing bid:', error);
-      setError('Failed to place bid. Please try again.');
+      setError(error.message || 'Failed to place bid. Please try again.');
     } finally {
       setLoading({ ...loading, [vehicleId]: false });
     }

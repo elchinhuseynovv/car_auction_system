@@ -34,13 +34,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Fetch profile after sign in
     if (data.user) {
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('first_name, last_name')
         .eq('id', data.user.id)
         .single();
       
-      set({ profile });
+      // If profile doesn't exist, create one
+      if (profileError && profileError.code === 'PGRST116') {
+        const { error: createProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            first_name: null,
+            last_name: null,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (createProfileError) throw createProfileError;
+        
+        set({ profile: { first_name: null, last_name: null } });
+      } else if (profileError) {
+        throw profileError;
+      } else {
+        set({ profile });
+      }
     }
   },
   signUp: async (email, password, firstName, lastName) => {

@@ -2,7 +2,7 @@ import { Vehicle, User, Bid } from './types';
 
 export const mockVehicles: Vehicle[] = [
   {
-    id: '1',
+    id: '123e4567-e89b-12d3-a456-426614174000',
     title: '2023 Mercedes-Benz S-Class',
     make: 'Mercedes-Benz',
     model: 'S-Class',
@@ -17,18 +17,18 @@ export const mockVehicles: Vehicle[] = [
       'https://images.pexels.com/photos/358070/pexels-photo-358070.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
     ],
     startingBid: 65000,
-    currentBid: 75000,
+    currentBid: 65000,
     bidIncrement: 500,
     endTime: '2025-06-24T18:00:00',
     sellerId: 'user1',
-    bidCount: 18,
+    bidCount: 0,
     category: 'Luxury',
     features: ['Heated Seats', 'Navigation', 'Sunroof', 'Premium Sound System', 'Driver Assistance Package'],
     condition: 'Excellent',
     location: 'New York, NY'
   },
   {
-    id: '2',
+    id: '123e4567-e89b-12d3-a456-426614174001',
     title: '2022 BMW M4 Competition',
     make: 'BMW',
     model: 'M4 Competition',
@@ -43,18 +43,18 @@ export const mockVehicles: Vehicle[] = [
       'https://images.pexels.com/photos/244206/pexels-photo-244206.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
     ],
     startingBid: 62000,
-    currentBid: 68500,
+    currentBid: 62000,
     bidIncrement: 500,
     endTime: '2025-06-23T15:30:00',
     sellerId: 'user2',
-    bidCount: 24,
+    bidCount: 0,
     category: 'Sports',
     features: ['M Sport Package', 'Carbon Fiber Trim', 'Harman Kardon Audio', 'Adaptive Suspension'],
     condition: 'Excellent',
     location: 'Miami, FL'
   },
   {
-    id: '3',
+    id: '123e4567-e89b-12d3-a456-426614174002',
     title: '2024 Audi e-tron GT',
     make: 'Audi',
     model: 'e-tron GT',
@@ -69,18 +69,18 @@ export const mockVehicles: Vehicle[] = [
       'https://images.pexels.com/photos/116675/pexels-photo-116675.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
     ],
     startingBid: 82000,
-    currentBid: 89200,
+    currentBid: 82000,
     bidIncrement: 1000,
     endTime: '2025-06-25T12:00:00',
     sellerId: 'user3',
-    bidCount: 15,
+    bidCount: 0,
     category: 'Electric',
     features: ['Virtual Cockpit', 'Bang & Olufsen Sound System', 'Adaptive Air Suspension', 'Matrix LED Headlights'],
     condition: 'Like New',
     location: 'Los Angeles, CA'
   },
   {
-    id: '4',
+    id: '123e4567-e89b-12d3-a456-426614174003',
     title: '2021 Tesla Model S Plaid',
     make: 'Tesla',
     model: 'Model S Plaid',
@@ -95,18 +95,18 @@ export const mockVehicles: Vehicle[] = [
       'https://greencarscompare.com/upload/resize_cache/iblock/af8/1100_618_2/683f5zoi0e5wpubzns7nxn1ic7rsxp1o.png',
     ],
     startingBid: 78000,
-    currentBid: 85500,
+    currentBid: 78000,
     bidIncrement: 500,
     endTime: '2025-06-26T10:00:00',
     sellerId: 'user4',
-    bidCount: 22,
+    bidCount: 0,
     category: 'Electric',
     features: ['Autopilot', 'Full Self-Driving Hardware', 'Premium Interior', 'Ultra High Fidelity Sound System'],
     condition: 'Excellent',
     location: 'San Francisco, CA'
   },
   {
-    id: '5',
+    id: '123e4567-e89b-12d3-a456-426614174004',
     title: '2020 Porsche 911 Carrera S',
     make: 'Porsche',
     model: '911 Carrera S',
@@ -121,18 +121,18 @@ export const mockVehicles: Vehicle[] = [
       'https://bringatrailer.com/wp-content/uploads/2023/10/Porsche-911-Carrera-S_20231020-009-20354-scaled.jpg',
     ],
     startingBid: 88000,
-    currentBid: 94500,
+    currentBid: 88000,
     bidIncrement: 1000,
     endTime: '2025-06-22T14:00:00',
     sellerId: 'user5',
-    bidCount: 19,
+    bidCount: 0,
     category: 'Sports',
     features: ['Sport Chrono Package', 'PASM Sport Suspension', 'Premium Package', 'Bose Surround Sound'],
     condition: 'Very Good',
     location: 'Chicago, IL'
   },
   {
-    id: '6',
+    id: '123e4567-e89b-12d3-a456-426614174005',
     title: '2022 Range Rover Sport HSE',
     make: 'Land Rover',
     model: 'Range Rover Sport HSE',
@@ -147,11 +147,11 @@ export const mockVehicles: Vehicle[] = [
       'https://images.pexels.com/photos/1638459/pexels-photo-1638459.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
     ],
     startingBid: 72000,
-    currentBid: 78500,
+    currentBid: 72000,
     bidIncrement: 500,
     endTime: '2025-06-27T16:00:00',
     sellerId: 'user6',
-    bidCount: 12,
+    bidCount: 0,
     category: 'SUV',
     features: ['Panoramic Roof', 'Meridian Sound System', 'Adaptive Dynamics', 'Terrain Response 2'],
     condition: 'Excellent',
@@ -186,45 +186,4 @@ export const mockUsers: User[] = [
   }
 ];
 
-export const mockBids: Bid[] = [
-  {
-    id: 'bid1',
-    vehicleId: '1',
-    userId: 'user2',
-    amount: 75000,
-    timestamp: '2025-06-18T14:30:00',
-    username: 'Emily Johnson'
-  },
-  {
-    id: 'bid2',
-    vehicleId: '1',
-    userId: 'user1',
-    amount: 74500,
-    timestamp: '2025-06-18T13:45:00',
-    username: 'John Smith'
-  },
-  {
-    id: 'bid3',
-    vehicleId: '2',
-    userId: 'user1',
-    amount: 68500,
-    timestamp: '2025-06-17T16:20:00',
-    username: 'John Smith'
-  },
-  {
-    id: 'bid4',
-    vehicleId: '2',
-    userId: 'user3',
-    amount: 68000,
-    timestamp: '2025-06-17T15:30:00',
-    username: 'Michael Brown'
-  },
-  {
-    id: 'bid5',
-    vehicleId: '3',
-    userId: 'user2',
-    amount: 89200,
-    timestamp: '2025-06-19T10:15:00',
-    username: 'Emily Johnson'
-  }
-];
+export const mockBids: Bid[] = [];

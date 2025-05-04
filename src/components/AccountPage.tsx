@@ -8,6 +8,12 @@ interface Bid {
   amount: number;
   created_at: string;
   vehicle_id: string;
+  vehicle: {
+    title: string;
+    make: string;
+    model: string;
+    current_bid: number;
+  };
 }
 
 const AccountPage: React.FC = () => {
@@ -22,7 +28,18 @@ const AccountPage: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('bids')
-          .select('*')
+          .select(`
+            id,
+            amount,
+            created_at,
+            vehicle_id,
+            vehicle:vehicles!bids_vehicle_id_fkey (
+              title,
+              make,
+              model,
+              current_bid
+            )
+          `)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
@@ -92,15 +109,23 @@ const AccountPage: React.FC = () => {
                       <div className="flex items-center">
                         <Car className="h-6 w-6 text-gray-400 mr-3" />
                         <div>
-                          <p className="font-medium">Bid Amount: ${bid.amount.toLocaleString()}</p>
+                          <p className="font-medium">{bid.vehicle?.title}</p>
                           <p className="text-sm text-gray-500">
-                            {new Date(bid.created_at).toLocaleDateString()}
+                            Your bid: ${bid.amount.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Current highest bid: ${bid.vehicle?.current_bid.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(bid.created_at).toLocaleDateString()} {new Date(bid.created_at).toLocaleTimeString()}
                           </p>
                         </div>
                       </div>
-                      <button className="text-blue-500 hover:text-blue-600">
-                        View Auction
-                      </button>
+                      <div className="text-right">
+                        <span className={`font-medium ${bid.amount === bid.vehicle?.current_bid ? 'text-green-500' : 'text-gray-500'}`}>
+                          {bid.amount === bid.vehicle?.current_bid ? 'Highest Bid' : 'Outbid'}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
