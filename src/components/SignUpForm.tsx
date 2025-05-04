@@ -24,8 +24,12 @@ const SignUpForm: React.FC = () => {
         replace: true,
         state: { message: 'Please check your email to confirm your account' }
       });
-    } catch (err) {
-      setError('Error creating account');
+    } catch (err: any) {
+      if (err?.message === 'User already registered') {
+        setError('An account with this email already exists. Please sign in instead.');
+      } else {
+        setError('An error occurred while creating your account. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

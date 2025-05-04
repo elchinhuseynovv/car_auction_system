@@ -22,8 +22,12 @@ const LoginForm: React.FC = () => {
     try {
       await signIn(email, password);
       navigate(from, { replace: true });
-    } catch (err) {
-      setError('Invalid email or password');
+    } catch (err: any) {
+      if (err?.message === 'Invalid login credentials') {
+        setError('The email or password you entered is incorrect');
+      } else {
+        setError('An error occurred while signing in. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

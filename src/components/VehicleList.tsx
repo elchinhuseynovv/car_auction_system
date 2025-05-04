@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Vehicle } from '../types';
-import { DollarSign, Users, Clock, CheckCircle } from 'lucide-react';
+import { DollarSign, Users, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 
@@ -15,7 +15,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
   const [bidAmount, setBidAmount] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
   const [success, setSuccess] = useState<{ [key: string]: boolean }>({});
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [localVehicles, setLocalVehicles] = useState<Vehicle[]>(vehicles);
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -110,35 +110,53 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
     }
   };
 
-  const handleBid = async (vehicleId: string) => {
-    setError(null);
-    setSuccess({ ...success, [vehicleId]: false });
-    
-    if (!user) {
-      navigate('/login');
-      return;
+  const clearBidState = (vehicleId: string) => {
+    setTimeout(() => {
+      setSuccess((prev) => ({ ...prev, [vehicleId]: false }));
+      setErrors((prev) => ({ ...prev, [vehicleId]: '' }));
+    }, 5000);
+  };
+
+  const validateBid = (vehicle: Vehicle, amount: number): string | null => {
+    if (!amount) {
+      return 'Please enter a bid amount';
     }
 
-    const amount = bidAmount[vehicleId];
-    if (!amount) {
-      setError('Please enter a bid amount');
+    if (amount <= vehicle.currentBid) {
+      return 'Bid must be higher than current bid';
+    }
+
+    if (amount < vehicle.currentBid + vehicle.bidIncrement) {
+      return `Minimum bid increment is $${vehicle.bidIncrement.toLocaleString()}`;
+    }
+
+    if (new Date(vehicle.endTime) < new Date()) {
+      return 'Auction has ended';
+    }
+
+    return null;
+  };
+
+  const handleBid = async (vehicleId: string) => {
+    if (!user) {
+      navigate('/login', { state: { from: location.pathname } });
       return;
     }
 
     const vehicle = localVehicles.find(v => v.id === vehicleId);
     if (!vehicle) return;
 
-    if (amount <= vehicle.currentBid) {
-      setError('Bid must be higher than current bid');
+    const amount = bidAmount[vehicleId];
+    const validationError = validateBid(vehicle, amount);
+
+    if (validationError) {
+      setErrors(prev => ({ ...prev, [vehicleId]: validationError }));
+      clearBidState(vehicleId);
       return;
     }
 
-    if (amount < vehicle.currentBid + vehicle.bidIncrement) {
-      setError(`Minimum bid increment is $${vehicle.bidIncrement}`);
-      return;
-    }
-
-    setLoading({ ...loading, [vehicleId]: true });
+    setLoading(prev => ({ ...prev, [vehicleId]: true }));
+    setErrors(prev => ({ ...prev, [vehicleId]: '' }));
 
     try {
       const { data: bid, error: bidError } = await supabase
@@ -154,19 +172,32 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
       if (bidError) throw bidError;
 
       // Update local state
-      setBidAmount({ ...bidAmount, [vehicleId]: 0 });
-      setSuccess({ ...success, [vehicleId]: true });
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccess({ ...success, [vehicleId]: false });
-      }, 3000);
+      setLocalVehicles(prevVehicles =>
+        prevVehicles.map(v => {
+          if (v.id === vehicleId) {
+            return {
+              ...v,
+              currentBid: amount,
+              bidCount: v.bidCount + 1
+            };
+          }
+          return v;
+        })
+      );
+
+      setBidAmount(prev => ({ ...prev, [vehicleId]: 0 }));
+      setSuccess(prev => ({ ...prev, [vehicleId]: true }));
+      clearBidState(vehicleId);
 
     } catch (error: any) {
       console.error('Error placing bid:', error);
-      setError(error.message || 'Failed to place bid. Please try again.');
+      setErrors(prev => ({ 
+        ...prev, 
+        [vehicleId]: error.message || 'Failed to place bid. Please try again.'
+      }));
+      clearBidState(vehicleId);
     } finally {
-      setLoading({ ...loading, [vehicleId]: false });
+      setLoading(prev => ({ ...prev, [vehicleId]: false }));
     }
   };
 
@@ -180,12 +211,6 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
           {filteredVehicles.length} vehicles available
         </p>
       </div>
-
-      {error && (
-        <div className="mb-6 p-4 rounded-lg bg-red-50 border-l-4 border-red-500">
-          <p className="text-red-700">{error}</p>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredVehicles.map((vehicle) => (
@@ -244,14 +269,24 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
                     <span className="text-sm">Bid placed successfully!</span>
                   </div>
                 )}
+                {errors[vehicle.id] && (
+                  <div className="flex items-center text-red-600 mb-2">
+                    <AlertCircle size={16} className="mr-1" />
+                    <span className="text-sm">{errors[vehicle.id]}</span>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <input
                     type="number"
                     value={bidAmount[vehicle.id] || ''}
-                    onChange={(e) => setBidAmount({
-                      ...bidAmount,
-                      [vehicle.id]: parseInt(e.target.value)
-                    })}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      setBidAmount({
+                        ...bidAmount,
+                        [vehicle.id]: isNaN(value) ? 0 : value
+                      });
+                      setErrors(prev => ({ ...prev, [vehicle.id]: '' }));
+                    }}
                     placeholder={`Min bid: $${(vehicle.currentBid + vehicle.bidIncrement).toLocaleString()}`}
                     className="flex-1 px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                     disabled={loading[vehicle.id]}
