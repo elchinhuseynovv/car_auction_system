@@ -26,7 +26,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
 
   // Subscribe to real-time bid updates
   useEffect(() => {
-    const subscription = supabase
+    const channel = supabase
       .channel('bid-updates')
       .on(
         'postgres_changes',
@@ -54,7 +54,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -118,12 +118,12 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
   };
 
   const validateBid = (vehicle: Vehicle, amount: number): string | null => {
-    if (!amount) {
-      return 'Please enter a bid amount';
+    if (!amount || amount <= 0) {
+      return 'Please enter a valid bid amount';
     }
 
     if (amount <= vehicle.currentBid) {
-      return 'Bid must be higher than current bid';
+      return `Your bid must be higher than the current bid of $${vehicle.currentBid.toLocaleString()}`;
     }
 
     if (amount < vehicle.currentBid + vehicle.bidIncrement) {
@@ -171,7 +171,6 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
 
       if (bidError) throw bidError;
 
-      // Update local state
       setLocalVehicles(prevVehicles =>
         prevVehicles.map(v => {
           if (v.id === vehicleId) {
