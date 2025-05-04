@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Vehicle } from '../types';
-import { DollarSign, Users, Clock } from 'lucide-react';
+import { DollarSign, Users, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 
@@ -14,6 +14,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
   const [searchParams] = useSearchParams();
   const [bidAmount, setBidAmount] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
+  const [success, setSuccess] = useState<{ [key: string]: boolean }>({});
   const [error, setError] = useState<string | null>(null);
   const [localVehicles, setLocalVehicles] = useState<Vehicle[]>(vehicles);
   const navigate = useNavigate();
@@ -22,6 +23,40 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
   useEffect(() => {
     setLocalVehicles(vehicles);
   }, [vehicles]);
+
+  // Subscribe to real-time bid updates
+  useEffect(() => {
+    const subscription = supabase
+      .channel('bid-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'bids'
+        },
+        (payload) => {
+          const { vehicle_id, amount } = payload.new;
+          setLocalVehicles(prevVehicles =>
+            prevVehicles.map(vehicle => {
+              if (vehicle.id === vehicle_id) {
+                return {
+                  ...vehicle,
+                  currentBid: amount,
+                  bidCount: vehicle.bidCount + 1
+                };
+              }
+              return vehicle;
+            })
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   let filteredVehicles = localVehicles;
 
@@ -77,6 +112,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
 
   const handleBid = async (vehicleId: string) => {
     setError(null);
+    setSuccess({ ...success, [vehicleId]: false });
     
     if (!user) {
       navigate('/login');
@@ -117,30 +153,15 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
 
       if (bidError) throw bidError;
 
-      // Get updated bid count
-      const { count } = await supabase
-        .from('bids')
-        .select('*', { count: 'exact', head: true })
-        .eq('vehicle_id', vehicleId);
-
       // Update local state
       setBidAmount({ ...bidAmount, [vehicleId]: 0 });
+      setSuccess({ ...success, [vehicleId]: true });
       
-      // Update the vehicle's current bid and bid count in the UI
-      const updatedVehicles = localVehicles.map(v => {
-        if (v.id === vehicleId) {
-          return {
-            ...v,
-            currentBid: amount,
-            bidCount: count || 0
-          };
-        }
-        return v;
-      });
-      
-      setLocalVehicles(updatedVehicles);
-      setError('Bid placed successfully!');
-      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess({ ...success, [vehicleId]: false });
+      }, 3000);
+
     } catch (error: any) {
       console.error('Error placing bid:', error);
       setError(error.message || 'Failed to place bid. Please try again.');
@@ -161,8 +182,8 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
       </div>
 
       {error && (
-        <div className={`mb-6 p-4 rounded-lg ${error.includes('successfully') ? 'bg-green-50 border-l-4 border-green-500' : 'bg-red-50 border-l-4 border-red-500'}`}>
-          <p className={error.includes('successfully') ? 'text-green-700' : 'text-red-700'}>{error}</p>
+        <div className="mb-6 p-4 rounded-lg bg-red-50 border-l-4 border-red-500">
+          <p className="text-red-700">{error}</p>
         </div>
       )}
 
@@ -216,25 +237,33 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles }) => {
                 </div>
               </div>
 
-              <div className="mt-4 flex gap-2">
-                <input
-                  type="number"
-                  value={bidAmount[vehicle.id] || ''}
-                  onChange={(e) => setBidAmount({
-                    ...bidAmount,
-                    [vehicle.id]: parseInt(e.target.value)
-                  })}
-                  placeholder={`Min bid: $${(vehicle.currentBid + vehicle.bidIncrement).toLocaleString()}`}
-                  className="flex-1 px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                  disabled={loading[vehicle.id]}
-                />
-                <button 
-                  onClick={() => handleBid(vehicle.id)}
-                  disabled={loading[vehicle.id]}
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading[vehicle.id] ? 'Placing Bid...' : 'Place Bid'}
-                </button>
+              <div className="mt-4">
+                {success[vehicle.id] && (
+                  <div className="flex items-center text-green-600 mb-2">
+                    <CheckCircle size={16} className="mr-1" />
+                    <span className="text-sm">Bid placed successfully!</span>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={bidAmount[vehicle.id] || ''}
+                    onChange={(e) => setBidAmount({
+                      ...bidAmount,
+                      [vehicle.id]: parseInt(e.target.value)
+                    })}
+                    placeholder={`Min bid: $${(vehicle.currentBid + vehicle.bidIncrement).toLocaleString()}`}
+                    className="flex-1 px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                    disabled={loading[vehicle.id]}
+                  />
+                  <button 
+                    onClick={() => handleBid(vehicle.id)}
+                    disabled={loading[vehicle.id]}
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading[vehicle.id] ? 'Placing Bid...' : 'Place Bid'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
